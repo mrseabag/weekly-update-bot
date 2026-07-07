@@ -44,14 +44,14 @@ MANAGER_EMAIL = os.getenv("MANAGER_EMAIL")     # report goes here
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")        # Gmail sending it
 SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 
-# Weekly prompt schedule (24h clock, server local time)
-PROMPT_DAY = 0    # 0=Monday … 6=Sunday
-PROMPT_HOUR = 9
+# Weekly prompt schedule (24h clock, UTC) — Friday 11:00 Ulaanbaatar time (UTC+8) = Friday 03:00 UTC
+PROMPT_DAY = 4    # 0=Monday … 6=Sunday
+PROMPT_HOUR = 3
 PROMPT_MINUTE = 0
 
-# Weekly report email schedule
+# Weekly report email schedule — Friday 19:00 Ulaanbaatar time (UTC+8) = Friday 11:00 UTC
 REPORT_DAY = 4    # Friday
-REPORT_HOUR = 17
+REPORT_HOUR = 11
 REPORT_MINUTE = 0
 
 # ════════════════════════════════════════════════════════════════════════════
