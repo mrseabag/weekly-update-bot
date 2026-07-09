@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import smtplib
+import socket
 from datetime import datetime
 from email import encoders
 from email.mime.base import MIMEBase
@@ -33,6 +34,19 @@ from telegram.ext import (
 )
 
 load_dotenv()
+
+# Railway's containers have no IPv6 egress route, but smtp.gmail.com resolves to
+# both A and AAAA records — Python tries AAAA first and fails with
+# "[Errno 101] Network is unreachable". Force IPv4-only DNS resolution so SMTP
+# connects over IPv4 instead.
+_orig_getaddrinfo = socket.getaddrinfo
+
+
+def _ipv4_only_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+
+socket.getaddrinfo = _ipv4_only_getaddrinfo
 
 # ════════════════════════════════════════════════════════════════════════════
 #  CONFIGURATION  —  fill these in before running
