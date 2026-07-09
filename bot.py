@@ -236,7 +236,7 @@ async def job_send_weekly_report(context: ContextTypes.DEFAULT_TYPE) -> None:
     users = load_users()
     for uid, info in users.items():
         if info.get("is_admin"):
-            status = "✅ Долоо хоногийн тайлан менежерт имэйлээр илгээгдлээ." if success else "⚠️ Имэйл илгээхэд алдаа гарлаа — тохиргоогоо шалгана уу."
+            status = " Долоо хоногийн тайлан менежерт имэйлээр илгээгдлээ." if success else "⚠️ Имэйл илгээхэд алдаа гарлаа — тохиргоогоо шалгана уу."
             try:
                 await context.bot.send_message(chat_id=int(uid), text=status)
             except Exception:
@@ -338,10 +338,10 @@ async def finish_update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     files_summary = f"{len(files)} файл: {', '.join(files)}" if files else "Байхгүй"
 
     await update.message.reply_text(
-        "🎉 *Тайлан илгээгдлээ — баярлалаа!*\n\n"
-        f"✅ Дуусгасан: {context.user_data.get('completed', '')[:80]}…\n"
-        f"🔨 Ажиллаж байгаа: {context.user_data.get('working_on', '')[:80]}…\n"
-        f"📎 Файлууд: {files_summary}\n\n"
+        " *Тайлан илгээгдлээ — баярлалаа!*\n\n"
+        f" Дуусгасан: {context.user_data.get('completed', '')[:80]}…\n"
+        f" Ажиллаж байгаа: {context.user_data.get('working_on', '')[:80]}…\n"
+        f" Файлууд: {files_summary}\n\n"
         "_Таны тайлан долоо хоногийн хүснэгтэд хадгалагдлаа._",
         parse_mode="Markdown",
         reply_markup=ReplyKeyboardRemove(),
