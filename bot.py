@@ -159,14 +159,21 @@ def save_update_to_excel(user_data: dict) -> None:
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 
-def send_weekly_email() -> bool:
+EMAIL_ERROR_MESSAGES = {
+    "not_configured": "MANAGER_EMAIL, SENDER_EMAIL, SENDER_PASSWORD тохиргоогоо шалгана уу.",
+    "no_data": "Тайлангийн өгөгдөл алга (weekly_updates.xlsx үүсээгүй байна — Railway дээр Volume холбогдсон эсэхийг шалгана уу).",
+    "smtp_error": "Имэйл серверт холбогдоход алдаа гарлаа (Gmail нэвтрэлт эсвэл сүлжээний асуудал). Дэлгэрэнгүйг лог-оос шалгана уу.",
+}
+
+
+def send_weekly_email() -> tuple[bool, str]:
     if not all([MANAGER_EMAIL, SENDER_EMAIL, SENDER_PASSWORD]):
         logger.warning("Email not configured — skipping report")
-        return False
+        return False, "not_configured"
 
     if not EXCEL_PATH.exists():
         logger.warning("No Excel file yet — skipping report")
-        return False
+        return False, "no_data"
 
     week_label = datetime.now().strftime("W%V %Y")
 
@@ -198,10 +205,10 @@ def send_weekly_email() -> bool:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.sendmail(SENDER_EMAIL, MANAGER_EMAIL, msg.as_string())
         logger.info("Weekly report emailed to %s", MANAGER_EMAIL)
-        return True
+        return True, ""
     except Exception as e:
         logger.error("Failed to send email: %s", e)
-        return False
+        return False, "smtp_error"
 
 
 # ── Scheduled jobs ────────────────────────────────────────────────────────────
@@ -231,12 +238,16 @@ async def job_send_weekly_prompt(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def job_send_weekly_report(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Fires every Friday — emails Excel report to manager."""
-    success = send_weekly_email()
+    success, reason = send_weekly_email()
     # Notify admin users if configured
     users = load_users()
     for uid, info in users.items():
         if info.get("is_admin"):
-            status = " Долоо хоногийн тайлан менежерт имэйлээр илгээгдлээ." if success else "⚠️ Имэйл илгээхэд алдаа гарлаа — тохиргоогоо шалгана уу."
+            status = (
+                "✅ Долоо хоногийн тайлан менежерт имэйлээр илгээгдлээ."
+                if success
+                else f"⚠️ Имэйл илгээхэд алдаа гарлаа — {EMAIL_ERROR_MESSAGES.get(reason, 'тодорхойгүй алдаа.')}"
+            )
             try:
                 await context.bot.send_message(chat_id=int(uid), text=status)
             except Exception:
@@ -338,10 +349,10 @@ async def finish_update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     files_summary = f"{len(files)} файл: {', '.join(files)}" if files else "Байхгүй"
 
     await update.message.reply_text(
-        " *Тайлан илгээгдлээ — баярлалаа!*\n\n"
-        f" Дуусгасан: {context.user_data.get('completed', '')[:80]}…\n"
-        f" Ажиллаж байгаа: {context.user_data.get('working_on', '')[:80]}…\n"
-        f" Файлууд: {files_summary}\n\n"
+        "🎉 *Тайлан илгээгдлээ — баярлалаа!*\n\n"
+        f"✅ Дуусгасан: {context.user_data.get('completed', '')[:80]}…\n"
+        f"🔨 Ажиллаж байгаа: {context.user_data.get('working_on', '')[:80]}…\n"
+        f"📎 Файлууд: {files_summary}\n\n"
         "_Таны тайлан долоо хоногийн хүснэгтэд хадгалагдлаа._",
         parse_mode="Markdown",
         reply_markup=ReplyKeyboardRemove(),
@@ -410,13 +421,12 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 async def cmd_sendreport(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Admin command — send the email report immediately."""
     await update.message.reply_text("Тайлангийн имэйл илгээж байна…")
-    success = send_weekly_email()
+    success, reason = send_weekly_email()
     if success:
         await update.message.reply_text(f"✅ Тайлан {MANAGER_EMAIL} руу илгээгдлээ")
     else:
         await update.message.reply_text(
-            "❌ Илгээхэд алдаа гарлаа. MANAGER_EMAIL, SENDER_EMAIL, "
-            "SENDER_PASSWORD тохиргоогоо шалгана уу."
+            f"❌ Илгээхэд алдаа гарлаа. {EMAIL_ERROR_MESSAGES.get(reason, 'Тодорхойгүй алдаа.')}"
         )
 
 
